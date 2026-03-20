@@ -11,20 +11,32 @@ def init_args():
 
 
 def init_sub_args(args):
-    dataset = "UBnormal" if args.dataset == "UBnormal" else "ShanghaiTech"
-    if args.vid_path_train and args.vid_path_test and args.pose_path_train and args.pose_path_test:
-        args.vid_path = {'train': args.vid_path_train,
-                         'test': args.vid_path_test}
-
-        args.pose_path = {'train': args.pose_path_train,
-                          'test': args.pose_path_test}
+    if args.dataset == 'PoseLift':
+        # PoseLift uses pickle files directly; pose_path/vid_path not needed.
+        args.pickle_path = {
+            'train': os.path.join(args.data_dir, 'Train'),
+            'test':  os.path.join(args.data_dir, 'Test'),
+        }
+        args.gt_path = os.path.join(args.data_dir, 'GT')
+        args.vid_res = [1024, 1440]
+        args.seg_len = args.seg_len or 24
+        # Dummy entries so any code touching these keys doesn't crash.
+        args.vid_path = {'train': '', 'test': ''}
+        args.pose_path = {'train': '', 'test': '', 'train_abnormal': None}
     else:
-        args.vid_path = {'train': os.path.join(args.data_dir, dataset, 'train/images/'),
-                         'test':  os.path.join(args.data_dir, dataset, 'test/frames/')}
+        dataset = "UBnormal" if args.dataset == "UBnormal" else "ShanghaiTech"
+        if args.vid_path_train and args.vid_path_test and args.pose_path_train and args.pose_path_test:
+            args.vid_path = {'train': args.vid_path_train,
+                             'test': args.vid_path_test}
+            args.pose_path = {'train': args.pose_path_train,
+                              'test': args.pose_path_test}
+        else:
+            args.vid_path = {'train': os.path.join(args.data_dir, dataset, 'train/images/'),
+                             'test':  os.path.join(args.data_dir, dataset, 'test/frames/')}
+            args.pose_path = {'train': os.path.join(args.data_dir, dataset, 'pose', 'train/'),
+                              'test':  os.path.join(args.data_dir, dataset, 'pose', 'test/')}
+        args.pose_path["train_abnormal"] = args.pose_path_train_abnormal
 
-        args.pose_path = {'train': os.path.join(args.data_dir, dataset, 'pose', 'train/'),
-                          'test':  os.path.join(args.data_dir, dataset, 'pose', 'test/')}
-    args.pose_path["train_abnormal"] = args.pose_path_train_abnormal
     args.ckpt_dir = None
     model_args = args_rm_prefix(args, 'model_')
     return args, model_args
@@ -39,7 +51,7 @@ def init_parser(default_data_dir='data/', default_exp_dir='data/exp_dir'):
     parser.add_argument('--vid_path_test', type=str, default=None, help='Path to test vids')
     parser.add_argument('--pose_path_test', type=str, default=None, help='Path to test pose')
     parser.add_argument('--dataset', type=str, default='ShanghaiTech',
-                        choices=['ShanghaiTech', 'ShanghaiTech-HR', 'UBnormal'], help='Dataset for Eval')
+                        choices=['ShanghaiTech', 'ShanghaiTech-HR', 'UBnormal', 'PoseLift'], help='Dataset for Eval')
     parser.add_argument('--vid_res', type=str, default=None, help='Video Res')
     parser.add_argument('--device', type=str, default='cuda:0', metavar='DEV', help='Device for feature calculation (default: \'cuda:0\')')
     parser.add_argument('--seed', type=int, metavar='S', default=999, help='Random seed, use 999 for random (default: 999)')

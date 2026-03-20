@@ -39,6 +39,9 @@ def get_dataset_scores(scores, metadata, args=None):
         clip_list = sorted(
             fn.replace("alphapose_tracked_person.json", "tracks.txt") for fn in clip_list if fn.endswith('.json'))
         per_frame_scores_root = 'data/UBnormal/gt/'
+    elif args.dataset == 'PoseLift':
+        per_frame_scores_root = args.gt_path
+        clip_list = sorted(fn for fn in os.listdir(per_frame_scores_root) if fn.endswith('.npy'))
     else:
         per_frame_scores_root = 'data/ShanghaiTech/gt/test_frame_mask/'
         clip_list = os.listdir(per_frame_scores_root)
@@ -91,7 +94,10 @@ def get_clip_score(scores, clip, metadata_np, metadata, per_frame_scores_root, a
     clip_fig_idxs = set([arr[2] for arr in clip_metadata])
     clip_res_fn = os.path.join(per_frame_scores_root, clip)
     clip_gt = np.load(clip_res_fn)
-    if args.dataset != "UBnormal":
+    if args.dataset == 'PoseLift':
+        # PoseLift GT: 0=normal, 1=anomaly — invert so 1=normal, 0=anomaly (matches normality score convention)
+        clip_gt = np.ones(clip_gt.shape) - clip_gt
+    elif args.dataset != "UBnormal":
         clip_gt = np.ones(clip_gt.shape) - clip_gt  # 1 is normal, 0 is abnormal
     scores_zeros = np.ones(clip_gt.shape[0]) * np.inf
     if len(clip_fig_idxs) == 0:

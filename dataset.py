@@ -121,6 +121,24 @@ class PoseSegDataset(Dataset):
 
 def get_dataset_and_loader(args, trans_list, only_test=False):
     loader_args = {'batch_size': args.batch_size, 'num_workers': args.num_workers, 'pin_memory': True}
+
+    if args.dataset == 'PoseLift':
+        from datasets.poselift import PoseLiftDataset
+        dataset, loader = dict(), dict()
+        splits = ['train', 'test'] if not only_test else ['test']
+        for split in splits:
+            stride = args.seg_stride if split == 'train' else 1
+            dataset[split] = PoseLiftDataset(
+                pickle_dir=args.pickle_path[split],
+                seg_len=args.seg_len,
+                stride=stride,
+                vid_res=args.vid_res,
+            )
+            loader[split] = DataLoader(dataset[split], **loader_args, shuffle=(split == 'train'))
+        if only_test:
+            loader['train'] = None
+        return dataset, loader
+
     dataset_args = {'headless': args.headless, 'scale': args.norm_scale, 'scale_proportional': args.prop_norm_scale,
                     'seg_len': args.seg_len, 'return_indices': True, 'return_metadata': True, "dataset": args.dataset,
                     'train_seg_conf_th': args.train_seg_conf_th, 'specific_clip': args.specific_clip}
