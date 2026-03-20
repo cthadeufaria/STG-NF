@@ -123,7 +123,11 @@ def get_dataset_and_loader(args, trans_list, only_test=False):
     loader_args = {'batch_size': args.batch_size, 'num_workers': args.num_workers, 'pin_memory': True}
 
     if args.dataset == 'PoseLift':
-        from datasets.poselift import PoseLiftDataset
+        import sys as _sys, os as _os
+        _repo_root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        if _repo_root not in _sys.path:
+            _sys.path.insert(0, _repo_root)
+        from datasets.poselift_stgnf import PoseLiftDataset
         dataset, loader = dict(), dict()
         splits = ['train', 'test'] if not only_test else ['test']
         for split in splits:
