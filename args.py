@@ -23,6 +23,26 @@ def init_sub_args(args):
         # Dummy entries so any code touching these keys doesn't crash.
         args.vid_path = {'train': '', 'test': ''}
         args.pose_path = {'train': '', 'test': '', 'train_abnormal': None}
+    elif args.dataset == 'Multi':
+        # Multi-dataset training: PoseLift + sinth + ShanghaiTech + UBnormal.
+        # Test set is always PoseLift for apples-to-apples AUC comparison.
+        poselift_root = os.path.join(args.data_dir, 'PoseLift', 'Pickle_files')
+        args.pickle_path = {
+            'train': os.path.join(poselift_root, 'Train'),
+            'test':  os.path.join(poselift_root, 'Test'),
+        }
+        args.gt_path = os.path.join(poselift_root, 'GT')
+        args.vid_res = [1024, 1440]   # test-set resolution for scoring
+        args.seg_len = args.seg_len or 24
+        args.vid_path = {'train': '', 'test': ''}
+        args.pose_path = {'train': '', 'test': '', 'train_abnormal': None}
+        # ShanghaiTech/UBnormal default paths (relative to stg_nf_official/ when run from there)
+        if not hasattr(args, 'shanghaitech_pose_dir') or args.shanghaitech_pose_dir is None:
+            args.shanghaitech_pose_dir = os.path.join('data', 'ShanghaiTech', 'pose', 'train')
+        if not hasattr(args, 'ubnormal_pose_dir') or args.ubnormal_pose_dir is None:
+            args.ubnormal_pose_dir = os.path.join('data', 'UBnormal', 'pose', 'train')
+        if not hasattr(args, 'sinth_data_dir') or args.sinth_data_dir is None:
+            args.sinth_data_dir = os.path.join('..', 'data', 'sinth', 'Pickle_files')
     else:
         dataset = "UBnormal" if args.dataset == "UBnormal" else "ShanghaiTech"
         if args.vid_path_train and args.vid_path_test and args.pose_path_train and args.pose_path_test:
@@ -51,7 +71,8 @@ def init_parser(default_data_dir='data/', default_exp_dir='data/exp_dir'):
     parser.add_argument('--vid_path_test', type=str, default=None, help='Path to test vids')
     parser.add_argument('--pose_path_test', type=str, default=None, help='Path to test pose')
     parser.add_argument('--dataset', type=str, default='ShanghaiTech',
-                        choices=['ShanghaiTech', 'ShanghaiTech-HR', 'UBnormal', 'PoseLift'], help='Dataset for Eval')
+                        choices=['ShanghaiTech', 'ShanghaiTech-HR', 'UBnormal', 'PoseLift', 'Multi'],
+                        help='Dataset for training/eval')
     parser.add_argument('--vid_res', type=str, default=None, help='Video Res')
     parser.add_argument('--device', type=str, default='cuda:0', metavar='DEV', help='Device for feature calculation (default: \'cuda:0\')')
     parser.add_argument('--seed', type=int, metavar='S', default=999, help='Random seed, use 999 for random (default: 999)')
@@ -72,6 +93,14 @@ def init_parser(default_data_dir='data/', default_exp_dir='data/exp_dir'):
     parser.add_argument('--seg_stride', type=int, default=6, metavar='SGST', help='Stride for training segment sliding window')
     parser.add_argument('--specific_clip', type=int, default=None, help='Train and Eval on Specific Clip')
     parser.add_argument('--global_pose_segs', action='store_false', help='Use unormalized pose segs')
+
+    # Multi-dataset path overrides (used when --dataset Multi)
+    parser.add_argument('--sinth_data_dir', type=str, default=None,
+                        help='Path to sinth/Pickle_files (Multi mode)')
+    parser.add_argument('--shanghaitech_pose_dir', type=str, default=None,
+                        help='Path to ShanghaiTech train pose JSON dir (Multi mode)')
+    parser.add_argument('--ubnormal_pose_dir', type=str, default=None,
+                        help='Path to UBnormal train pose JSON dir (Multi mode)')
 
     # Model Params
     parser.add_argument('--checkpoint', type=str, metavar='model', help="Path to a pretrained model")

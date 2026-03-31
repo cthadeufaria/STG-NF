@@ -143,6 +143,29 @@ def get_dataset_and_loader(args, trans_list, only_test=False):
             loader['train'] = None
         return dataset, loader
 
+    if args.dataset == 'Multi':
+        import sys as _sys, os as _os
+        _repo_root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        if _repo_root not in _sys.path:
+            _sys.path.insert(0, _repo_root)
+        from datasets.poselift_stgnf import PoseLiftDataset
+        from datasets.multi_dataset import build_multi_train_dataset
+        dataset, loader = dict(), dict()
+        # Test set: PoseLift only (clean AUC-ROC comparison vs baseline)
+        dataset['test'] = PoseLiftDataset(
+            pickle_dir=args.pickle_path['test'],
+            seg_len=args.seg_len,
+            stride=1,
+            vid_res=args.vid_res,
+        )
+        if not only_test:
+            dataset['train'] = build_multi_train_dataset(args)
+            loader['train'] = DataLoader(dataset['train'], **loader_args, shuffle=True)
+        else:
+            loader['train'] = None
+        loader['test'] = DataLoader(dataset['test'], **loader_args, shuffle=False)
+        return dataset, loader
+
     dataset_args = {'headless': args.headless, 'scale': args.norm_scale, 'scale_proportional': args.prop_norm_scale,
                     'seg_len': args.seg_len, 'return_indices': True, 'return_metadata': True, "dataset": args.dataset,
                     'train_seg_conf_th': args.train_seg_conf_th, 'specific_clip': args.specific_clip}
