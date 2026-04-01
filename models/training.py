@@ -152,6 +152,7 @@ class Trainer:
                 log_writer.add_scalar('NLL Loss (epoch avg)', sum(epoch_losses) / len(epoch_losses), epoch)
             self.save_checkpoint(epoch, filename=checkpoint_filename)
             new_lr = self.adjust_lr(epoch)
+            log_writer.add_scalar('Learning Rate', new_lr, epoch)
             print('Checkpoint Saved. New LR: {0:.3e}'.format(new_lr))
 
     def test(self):
