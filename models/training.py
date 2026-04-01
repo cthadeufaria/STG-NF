@@ -113,6 +113,7 @@ class Trainer:
                 break
             print("Starting Epoch {} / {}".format(epoch + 1, num_epochs))
             pbar = tqdm(self.train_loader)
+            epoch_losses = []
             for itern, data_arr in enumerate(pbar):
                 try:
                     data = [data.to(self.args.device, non_blocking=True) for data in data_arr]
@@ -129,11 +130,14 @@ class Trainer:
                         nll = nll * score
                     losses = compute_loss(nll, reduction="mean")["total_loss"]
                     losses.backward()
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip)
                     self.optimizer.step()
                     self.optimizer.zero_grad()
                     pbar.set_description("Loss: {}".format(losses.item()))
-                    log_writer.add_scalar('NLL Loss', losses.item(), epoch * len(self.train_loader) + itern)
+                    global_step = epoch * len(self.train_loader) + itern
+                    log_writer.add_scalar('NLL Loss', losses.item(), global_step)
+                    log_writer.add_scalar('Gradient Norm', grad_norm.item(), global_step)
+                    epoch_losses.append(losses.item())
 
                 except KeyboardInterrupt:
                     print('Keyboard Interrupted. Save results? [yes/no]')
@@ -144,6 +148,8 @@ class Trainer:
                     else:
                         exit(1)
 
+            if epoch_losses:
+                log_writer.add_scalar('NLL Loss (epoch avg)', sum(epoch_losses) / len(epoch_losses), epoch)
             self.save_checkpoint(epoch, filename=checkpoint_filename)
             new_lr = self.adjust_lr(epoch)
             print('Checkpoint Saved. New LR: {0:.3e}'.format(new_lr))
