@@ -12,6 +12,7 @@ Example:
 """
 
 import copy
+import os
 import numpy as np
 import torch
 
@@ -53,8 +54,10 @@ def main():
         np.random.seed(0)
 
     # Initialise with PoseLift to build the model (checkpoint determines architecture)
-    base_args.dataset = 'PoseLift'
-    args0, model_args0 = init_sub_args(copy.deepcopy(base_args))
+    args0 = copy.deepcopy(base_args)
+    args0.dataset = 'PoseLift'
+    args0.data_dir = os.path.join(base_args.data_dir, 'PoseLift', 'Pickle_files')
+    args0, _ = init_sub_args(args0)
 
     # Need a dummy dataset to derive model_args (input shape etc.)
     dataset0, loader0 = get_dataset_and_loader(args0, trans_list=trans_list, only_test=True)
@@ -67,11 +70,23 @@ def main():
     )
     trainer.load_checkpoint(vars(base_args)['checkpoint'])
 
+    # data_dir mappings per dataset:
+    # - PoseLift: init_sub_args uses data_dir/Train and data_dir/Test directly
+    # - ShanghaiTech/UBnormal: init_sub_args uses data_dir/<Dataset>/pose/test/
+    #   which resolves relative to stg_nf_official/, so use 'data/'
+    poselift_data_dir = os.path.join(base_args.data_dir, 'PoseLift', 'Pickle_files')
+    dataset_data_dirs = {
+        'PoseLift':     poselift_data_dir,
+        'ShanghaiTech': 'data/',
+        'UBnormal':     'data/',
+    }
+
     results = {}
     for ds in ['PoseLift', 'ShanghaiTech', 'UBnormal']:
         print(f"\n--- Evaluating on {ds} ---")
         args_ds = copy.deepcopy(base_args)
         args_ds.dataset = ds
+        args_ds.data_dir = dataset_data_dirs[ds]
         args_ds, _ = init_sub_args(args_ds)
         auc_roc, auc_pr, eer, n = evaluate_dataset(trainer, args_ds)
         results[ds] = (auc_roc, auc_pr, eer, n)
