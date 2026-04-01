@@ -79,8 +79,9 @@ def score_metrics(scores_np, gt):
     scores_np[scores_np == np.inf] = scores_np[scores_np != np.inf].max()
     scores_np[scores_np == -1 * np.inf] = scores_np[scores_np != -1 * np.inf].min()
     auc_roc = roc_auc_score(gt, scores_np)
-    # AUC-PR for the anomaly class (gt=0); invert so anomaly=positive
-    auc_pr = average_precision_score(1 - gt, -scores_np)
+    # AUC-PR with normal as positive class (gt=1=normal), consistent with
+    # normality score convention and PoseLift paper reporting
+    auc_pr = average_precision_score(gt, scores_np)
     # EER: threshold where FPR == FNR (1 - TPR)
     fpr, tpr, _ = roc_curve(gt, scores_np)
     eer = brentq(lambda x: 1.0 - x - interp1d(fpr, tpr)(x), 0.0, 1.0)
