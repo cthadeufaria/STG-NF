@@ -48,11 +48,14 @@ def main():
         dump_args(args, args.ckpt_dir)
 
     normality_scores = trainer.test()
-    auc, scores = score_dataset(normality_scores, dataset["test"].metadata, args=args)
+    auc_roc, auc_pr, eer, scores = score_dataset(normality_scores, dataset["test"].metadata, args=args)
 
     # Logging and recording results
     print("\n-------------------------------------------------------")
-    print("\033[92m Done with {}% AuC for {} samples\033[0m".format(auc * 100, scores.shape[0]))
+    print("\033[92m AUC-ROC : {:.4f}%\033[0m".format(auc_roc * 100))
+    print("\033[92m AUC-PR  : {:.4f}%\033[0m".format(auc_pr * 100))
+    print("\033[92m EER     : {:.4f}%\033[0m".format(eer * 100))
+    print(" Samples : {}".format(scores.shape[0]))
     print("-------------------------------------------------------\n\n")
 
 

@@ -2,7 +2,9 @@ import os
 import re
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
-from sklearn.metrics import roc_auc_score
+from scipy.optimize import brentq
+from scipy.interpolate import interp1d
+from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve
 from tqdm import tqdm
 from dataset import shanghaitech_hr_skip
 
@@ -24,8 +26,8 @@ def score_dataset(score, metadata, args=None):
     scores_arr = smooth_scores(scores_arr)
     gt_np = np.concatenate(gt_arr)
     scores_np = np.concatenate(scores_arr)
-    auc = score_auc(scores_np, gt_np)
-    return auc, scores_np
+    auc_roc, auc_pr, eer = score_metrics(scores_np, gt_np)
+    return auc_roc, auc_pr, eer, scores_np
 
 
 def get_dataset_scores(scores, metadata, args=None):
@@ -71,6 +73,18 @@ def score_auc(scores_np, gt):
     scores_np[scores_np == -1 * np.inf] = scores_np[scores_np != -1 * np.inf].min()
     auc = roc_auc_score(gt, scores_np)
     return auc
+
+
+def score_metrics(scores_np, gt):
+    scores_np[scores_np == np.inf] = scores_np[scores_np != np.inf].max()
+    scores_np[scores_np == -1 * np.inf] = scores_np[scores_np != -1 * np.inf].min()
+    auc_roc = roc_auc_score(gt, scores_np)
+    # AUC-PR for the anomaly class (gt=0); invert so anomaly=positive
+    auc_pr = average_precision_score(1 - gt, -scores_np)
+    # EER: threshold where FPR == FNR (1 - TPR)
+    fpr, tpr, _ = roc_curve(gt, scores_np)
+    eer = brentq(lambda x: 1.0 - x - interp1d(fpr, tpr)(x), 0.0, 1.0)
+    return auc_roc, auc_pr, eer
 
 
 def smooth_scores(scores_arr, sigma=7):
