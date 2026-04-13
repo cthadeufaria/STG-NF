@@ -98,7 +98,7 @@ class Trainer:
             print("Checkpoint loaded successfully from '{}' at (epoch {})\n"
                   .format(filename, checkpoint['epoch']))
         except FileNotFoundError:
-            print("No checkpoint exists from '{}'. Skipping...\n".format(self.args.ckpt_dir))
+            raise FileNotFoundError("No checkpoint found at '{}'. Check the path.".format(filename))
 
     def train(self, log_writer=None, clip=100):
         time_str = time.strftime("%b%d_%H%M_")
@@ -162,7 +162,7 @@ class Trainer:
         probs = torch.empty(0).to(self.args.device)
         print("Starting Test Eval")
         for itern, data_arr in enumerate(pbar):
-            data = [data.to(self.args.device, non_blocking=True) for data in data_arr]
+            data = [data.float().to(self.args.device, non_blocking=True) for data in data_arr]
             score = data[-2].amin(dim=-1)
             if self.args.model_confidence:
                 samp = data[0]

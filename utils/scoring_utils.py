@@ -59,6 +59,9 @@ def get_dataset_scores(scores, metadata, args=None):
     scores_np = np.concatenate(dataset_scores_arr, axis=0)
     scores_np[scores_np == np.inf] = scores_np[scores_np != np.inf].max()
     scores_np[scores_np == -1 * np.inf] = scores_np[scores_np != -1 * np.inf].min()
+    nan_mask = np.isnan(scores_np)
+    if nan_mask.any():
+        scores_np[nan_mask] = np.nanmedian(scores_np)
     index = 0
     for score in range(len(dataset_scores_arr)):
         for t in range(dataset_scores_arr[score].shape[0]):
@@ -78,6 +81,10 @@ def score_auc(scores_np, gt):
 def score_metrics(scores_np, gt):
     scores_np[scores_np == np.inf] = scores_np[scores_np != np.inf].max()
     scores_np[scores_np == -1 * np.inf] = scores_np[scores_np != -1 * np.inf].min()
+    nan_mask = np.isnan(scores_np)
+    if nan_mask.any():
+        print(f"Warning: {nan_mask.sum()} NaN scores replaced with median.")
+        scores_np[nan_mask] = np.nanmedian(scores_np)
     auc_roc = roc_auc_score(gt, scores_np)
     # AUC-PR with normal as positive class (gt=1=normal), consistent with
     # normality score convention and PoseLift paper reporting
